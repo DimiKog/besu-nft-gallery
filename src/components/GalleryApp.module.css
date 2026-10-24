@@ -1,0 +1,77 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  max-width: 40rem;
+  color: #444;
+  line-height: 1.5;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.linkButton {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #0b57d0;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.status {
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.error {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #f0b4b4;
+  border-radius: 6px;
+  background: #fff5f5;
+  color: #8a1f1f;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
