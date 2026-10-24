@@ -1,8 +1,10 @@
 import type { NftItem } from "@/lib/nft";
+import { getBlockscoutBaseUrl } from "./config";
 import { mapBlockscoutNftItems } from "./mapNft";
 import type { BlockscoutNftPage } from "./types";
 
-const DEFAULT_BASE_URL = "https://blockexplorer.dimikog.org";
+export { getBlockscoutBaseUrl } from "./config";
+
 const NFT_TYPES = "ERC-721,ERC-1155";
 
 export class BlockscoutApiError extends Error {
@@ -15,18 +17,12 @@ export class BlockscoutApiError extends Error {
   }
 }
 
-function getBaseUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE_URL?.trim();
-  const base = fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_BASE_URL;
-  return base.replace(/\/+$/, "");
-}
-
 function buildNftUrl(
   address: string,
   pageParams: Record<string, string | number | null> | null,
 ): string {
   const url = new URL(
-    `${getBaseUrl()}/api/v2/addresses/${encodeURIComponent(address)}/nft`,
+    `${getBlockscoutBaseUrl()}/api/v2/addresses/${encodeURIComponent(address)}/nft`,
   );
   url.searchParams.set("type", NFT_TYPES);
 

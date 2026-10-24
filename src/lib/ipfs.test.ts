@@ -5,7 +5,7 @@ import {
   normalizeIpfsGateway,
   resolveIpfsImageUrls,
   resolveToHttpUrl,
-} from "./ipfs.ts";
+} from "./ipfs";
 
 const PINATA = "https://gateway.pinata.cloud/ipfs/";
 const CID = "bafkreifc7xa37qtrbuk2hrh7fspfrm6pgqpxeumrmg5u4mu45xe23hltre";

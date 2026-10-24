@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { isValidEthereumAddress, normalizeAddressInput } from "@/lib/address";
 import {
   BlockscoutApiError,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/blockscout/client";
 import type { NftItem } from "@/lib/nft";
 import { AddressForm } from "./AddressForm";
+import { NftDetailsModal } from "./NftDetailsModal";
 import { NftGrid } from "./NftGrid";
 import styles from "./GalleryApp.module.css";
 
@@ -21,6 +22,25 @@ export function GalleryApp() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [items, setItems] = useState<NftItem[]>([]);
   const [queriedAddress, setQueriedAddress] = useState<string | null>(null);
+  const [selectedNft, setSelectedNft] = useState<NftItem | null>(null);
+  const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
+
+  function clearSelection(options?: { restoreFocus?: boolean }) {
+    const opener = detailsOpenerRef.current;
+    detailsOpenerRef.current = null;
+    setSelectedNft(null);
+
+    if (options?.restoreFocus && opener) {
+      requestAnimationFrame(() => {
+        opener.focus();
+      });
+    }
+  }
+
+  function handleSelectNft(nft: NftItem, trigger: HTMLButtonElement) {
+    detailsOpenerRef.current = trigger;
+    setSelectedNft(nft);
+  }
 
   async function handleSubmit() {
     const normalized = normalizeAddressInput(address);
@@ -32,12 +52,14 @@ export function GalleryApp() {
       );
       setItems([]);
       setQueriedAddress(null);
+      clearSelection();
       return;
     }
 
     setStatus("loading");
     setErrorMessage(null);
     setItems([]);
+    clearSelection();
     setQueriedAddress(normalized);
 
     try {
@@ -52,6 +74,7 @@ export function GalleryApp() {
       setErrorMessage(message);
       setStatus("error");
       setItems([]);
+      clearSelection();
     }
   }
 
@@ -108,8 +131,16 @@ export function GalleryApp() {
             {items.length} NFT{items.length === 1 ? "" : "s"} for{" "}
             <span className={styles.mono}>{queriedAddress}</span>
           </p>
-          <NftGrid items={items} />
+          <NftGrid items={items} onSelect={handleSelectNft} />
         </section>
+      ) : null}
+
+      {selectedNft ? (
+        <NftDetailsModal
+          key={selectedNft.id}
+          nft={selectedNft}
+          onClose={() => clearSelection({ restoreFocus: true })}
+        />
       ) : null}
     </div>
   );

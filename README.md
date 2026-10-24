@@ -31,7 +31,7 @@ left unchanged.
 - `npm run start` — run production build
 - `npm run lint` — ESLint
 - `npm run typecheck` — TypeScript (`tsc --noEmit`)
-- `npm test` — IPFS helper unit tests (Node built-in test runner)
+- `npm test` — unit tests (IPFS, mapping, display helpers)
 
 ## Manual test address
 

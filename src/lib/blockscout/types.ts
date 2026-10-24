@@ -7,11 +7,19 @@ export type BlockscoutTokenInfo = {
   type?: string | null;
 };
 
+export type BlockscoutNftAttribute = {
+  trait_type?: unknown;
+  traitType?: unknown;
+  value?: unknown;
+};
+
 export type BlockscoutNftMetadata = {
   name?: string | null;
   description?: string | null;
   image?: string | null;
   image_url?: string | null;
+  external_url?: string | null;
+  attributes?: BlockscoutNftAttribute[] | null;
 };
 
 export type BlockscoutNftItem = {
@@ -21,6 +29,7 @@ export type BlockscoutNftItem = {
   media_url?: string | null;
   animation_url?: string | null;
   value?: string | null;
+  external_app_url?: string | null;
   metadata?: BlockscoutNftMetadata | null;
   token?: BlockscoutTokenInfo | null;
 };

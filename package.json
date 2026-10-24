@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/ipfs.test.ts"
+    "test": "tsx --test src/lib/ipfs.test.ts src/lib/nftDisplay.test.ts src/lib/htmlEntities.test.ts src/lib/safeUrl.test.ts src/lib/blockscout/mapNft.test.ts"
   },
   "dependencies": {
     "next": "16.4.3",
@@ -21,6 +21,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

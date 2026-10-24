@@ -1,6 +1,11 @@
+import { decodeBasicHtmlEntities } from "@/lib/htmlEntities";
 import { resolveIpfsImageUrls } from "@/lib/ipfs";
-import type { NftItem, NftTokenType } from "@/lib/nft";
-import type { BlockscoutNftItem } from "./types";
+import type { NftAttribute, NftItem, NftTokenType } from "@/lib/nft";
+import { toSafeHttpUrl } from "@/lib/safeUrl";
+import type {
+  BlockscoutNftAttribute,
+  BlockscoutNftItem,
+} from "./types";
 
 function asNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -10,11 +15,89 @@ function asNonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/** Non-empty trimmed text with basic HTML entities decoded for display. */
+function asDecodedText(value: unknown): string | null {
+  const text = asNonEmptyString(value);
+  if (text == null) {
+    return null;
+  }
+  return decodeBasicHtmlEntities(text);
+}
+
 function mapTokenType(value: string | null | undefined): NftTokenType {
   if (value === "ERC-721" || value === "ERC-1155") {
     return value;
   }
   return "other";
+}
+
+function stringifyAttributeValue(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function isEmptyAttributeValue(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return true;
+  }
+  if (typeof value === "string" && value.trim() === "") {
+    return true;
+  }
+  return false;
+}
+
+export function mapAttributes(
+  raw: BlockscoutNftAttribute[] | null | undefined,
+): NftAttribute[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const attributes: NftAttribute[] = [];
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+
+    const traitRaw = entry.trait_type ?? entry.traitType;
+    if (traitRaw === null || traitRaw === undefined) {
+      continue;
+    }
+
+    const traitType = String(traitRaw).trim();
+    if (!traitType) {
+      continue;
+    }
+
+    if (isEmptyAttributeValue(entry.value)) {
+      continue;
+    }
+
+    attributes.push({
+      traitType: decodeBasicHtmlEntities(traitType),
+      value: decodeBasicHtmlEntities(stringifyAttributeValue(entry.value)),
+    });
+  }
+
+  return attributes;
+}
+
+function pickExternalUrl(item: BlockscoutNftItem): string | null {
+  const fromMetadata = toSafeHttpUrl(item.metadata?.external_url);
+  if (fromMetadata) {
+    return fromMetadata;
+  }
+  return toSafeHttpUrl(item.external_app_url);
 }
 
 function pickRawImageRef(item: BlockscoutNftItem): string | null {
@@ -67,16 +150,19 @@ export function mapBlockscoutNftItem(item: BlockscoutNftItem): NftItem | null {
   }
 
   const { imageUrl, imageFallbackUrl } = pickImageUrls(item);
+  const metadata = item.metadata;
 
   return {
     id: `${contractAddress}-${tokenId}`,
     tokenId,
     contractAddress,
     tokenType: mapTokenType(item.token_type ?? item.token?.type),
-    collectionName: asNonEmptyString(item.token?.name),
-    collectionSymbol: asNonEmptyString(item.token?.symbol),
-    name: asNonEmptyString(item.metadata?.name),
-    description: asNonEmptyString(item.metadata?.description),
+    collectionName: asDecodedText(item.token?.name),
+    collectionSymbol: asDecodedText(item.token?.symbol),
+    name: asDecodedText(metadata?.name),
+    description: asDecodedText(metadata?.description),
+    attributes: mapAttributes(metadata?.attributes),
+    externalUrl: pickExternalUrl(item),
     imageUrl,
     imageFallbackUrl,
     rawImageRef: pickRawImageRef(item),
