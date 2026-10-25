@@ -76,7 +76,7 @@ async function fetchNftPage(
 
 /**
  * Fetch all NFT pages for an address by following `next_page_params` sequentially.
- * Intended for browser-side use (CORS). Isolated so it can later move behind a Route Handler.
+ * Intended for browser-side use against the Blockscout REST API (CORS).
  */
 export async function fetchAllNftsByOwner(address: string): Promise<NftItem[]> {
   const collected: NftItem[] = [];

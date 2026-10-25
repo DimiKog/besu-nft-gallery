@@ -14,8 +14,6 @@ import styles from "./GalleryApp.module.css";
 
 type Status = "idle" | "loading" | "success" | "error";
 
-const TEST_ADDRESS = "0x0E66db7d115B8F392eB7DFb8BaCb23675dAEB59E";
-
 export function GalleryApp() {
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -94,18 +92,6 @@ export function GalleryApp() {
         onChange={setAddress}
         onSubmit={handleSubmit}
       />
-
-      <p className={styles.hint}>
-        Try the test address{" "}
-        <button
-          type="button"
-          className={styles.linkButton}
-          disabled={status === "loading"}
-          onClick={() => setAddress(TEST_ADDRESS)}
-        >
-          {TEST_ADDRESS}
-        </button>
-      </p>
 
       {status === "loading" ? (
         <p className={styles.status} role="status">
