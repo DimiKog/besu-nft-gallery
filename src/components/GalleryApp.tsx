@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { isValidEthereumAddress, normalizeAddressInput } from "@/lib/address";
 import {
+  resolveAddressDeepLink,
+  shouldApplyDeepLinkBootstrap,
+} from "@/lib/addressQuery";
+import {
   BlockscoutApiError,
   fetchNftsByOwnerPage,
   isBlockscoutAbortError,
@@ -16,6 +20,9 @@ import { NftGrid } from "./NftGrid";
 import styles from "./GalleryApp.module.css";
 
 type Status = "idle" | "loading" | "success" | "error";
+
+const INVALID_ADDRESS_MESSAGE =
+  "Enter a valid Ethereum address (0x followed by 40 hexadecimal characters).";
 
 export function GalleryApp() {
   const [address, setAddress] = useState("");
@@ -31,6 +38,8 @@ export function GalleryApp() {
   const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const loadingMoreRef = useRef(false);
+  /** Once true, deep-link bootstrap must not apply (manual search wins). */
+  const userHasInitiatedSearchRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -63,39 +72,36 @@ export function GalleryApp() {
     return controller.signal;
   }
 
-  async function handleSubmit() {
-    const normalized = normalizeAddressInput(address);
+  function showInvalidAddress(rawAddress: string) {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    loadingMoreRef.current = false;
+    setLoadingMore(false);
+    setAddress(rawAddress);
+    setStatus("error");
+    setErrorMessage(INVALID_ADDRESS_MESSAGE);
+    setLoadMoreError(null);
+    setItems([]);
+    setNextPageParams(null);
+    setQueriedAddress(null);
+    clearSelection();
+  }
 
-    if (!isValidEthereumAddress(normalized)) {
-      abortRef.current?.abort();
-      abortRef.current = null;
-      loadingMoreRef.current = false;
-      setLoadingMore(false);
-      setStatus("error");
-      setErrorMessage(
-        "Enter a valid Ethereum address (0x followed by 40 hexadecimal characters).",
-      );
-      setLoadMoreError(null);
-      setItems([]);
-      setNextPageParams(null);
-      setQueriedAddress(null);
-      clearSelection();
-      return;
-    }
-
+  async function loadFirstPage(normalizedAddress: string) {
     const signal = beginRequest();
     loadingMoreRef.current = false;
     setLoadingMore(false);
+    setAddress(normalizedAddress);
     setStatus("loading");
     setErrorMessage(null);
     setLoadMoreError(null);
     setItems([]);
     setNextPageParams(null);
     clearSelection();
-    setQueriedAddress(normalized);
+    setQueriedAddress(normalizedAddress);
 
     try {
-      const page = await fetchNftsByOwnerPage(normalized, { signal });
+      const page = await fetchNftsByOwnerPage(normalizedAddress, { signal });
       if (signal.aborted) {
         return;
       }
@@ -116,6 +122,40 @@ export function GalleryApp() {
       setNextPageParams(null);
       clearSelection();
     }
+  }
+
+  useEffect(() => {
+    const action = resolveAddressDeepLink(window.location.search);
+    if (action.type === "none") {
+      return;
+    }
+    if (!shouldApplyDeepLinkBootstrap(userHasInitiatedSearchRef.current)) {
+      return;
+    }
+
+    // Deep-link mount sync: URL → gallery state (static export; no SSR searchParams).
+    if (action.type === "invalid") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- deep-link bootstrap
+      showInvalidAddress(action.raw);
+      return;
+    }
+
+    void loadFirstPage(action.address);
+    // Mount-only bootstrap. In-flight requests abort via the unmount effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSubmit() {
+    userHasInitiatedSearchRef.current = true;
+
+    const normalized = normalizeAddressInput(address);
+
+    if (!isValidEthereumAddress(normalized)) {
+      showInvalidAddress(address);
+      return;
+    }
+
+    await loadFirstPage(normalized);
   }
 
   async function handleLoadMore() {

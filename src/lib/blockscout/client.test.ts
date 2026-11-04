@@ -266,4 +266,59 @@ describe("fetchNftsByOwnerPage", () => {
     );
     assert.equal(fetchMock.mock.callCount(), 0);
   });
+
+  it("classifies timeout during response.json() as timeout, not aborted", async () => {
+    mock.method(globalThis, "fetch", async (_input, init) => {
+      const signal = init?.signal;
+      assert.ok(signal);
+
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return await new Promise<unknown>((_resolve, reject) => {
+            const fail = () => {
+              reject(new DOMException("Aborted", "AbortError"));
+            };
+            if (signal.aborted) {
+              fail();
+              return;
+            }
+            signal.addEventListener("abort", fail, { once: true });
+          });
+        },
+      } as Response;
+    });
+
+    await assert.rejects(
+      () => fetchNftsByOwnerPage("0xabc", { timeoutMs: 20 }),
+      (error: unknown) => {
+        assert.ok(error instanceof BlockscoutApiError);
+        assert.equal(error.code, "timeout");
+        assert.equal(isBlockscoutAbortError(error), false);
+        return true;
+      },
+    );
+  });
+
+  it("still classifies malformed JSON as invalid when not aborted", async () => {
+    mock.method(
+      globalThis,
+      "fetch",
+      async () =>
+        new Response("{bad", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+
+    await assert.rejects(
+      () => fetchNftsByOwnerPage("0xabc", { timeoutMs: 5_000 }),
+      (error: unknown) => {
+        assert.ok(error instanceof BlockscoutApiError);
+        assert.equal(error.code, "invalid");
+        return true;
+      },
+    );
+  });
 });

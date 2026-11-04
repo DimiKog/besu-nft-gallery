@@ -149,6 +149,37 @@ function isTimeoutMarker(reason: unknown): reason is TimeoutMarker {
   );
 }
 
+function classifyFetchFailure(
+  error: unknown,
+  controller: AbortController,
+  externalSignal: AbortSignal | undefined,
+): BlockscoutApiError {
+  if (error instanceof BlockscoutApiError) {
+    return error;
+  }
+
+  if (isTimeoutMarker(controller.signal.reason) || isTimeoutMarker(error)) {
+    return new BlockscoutApiError(
+      "Blockscout API request timed out. Please try again.",
+      null,
+      "timeout",
+    );
+  }
+
+  if (
+    externalSignal?.aborted ||
+    (isAbortError(error) && !isTimeoutMarker(controller.signal.reason))
+  ) {
+    return new BlockscoutApiError("Request was cancelled.", null, "aborted");
+  }
+
+  return new BlockscoutApiError(
+    "Unable to reach the Blockscout API. Check your network connection and try again.",
+    null,
+    "network",
+  );
+}
+
 /**
  * Fetch a single NFT ownership page from Blockscout.
  * Intended for browser-side use against the Blockscout REST API (CORS).
@@ -187,71 +218,68 @@ export async function fetchNftsByOwnerPage(
     controller.abort(timeoutMarker);
   }, timeoutMs);
 
-  let response: Response;
   try {
-    response = await fetch(url, { signal: controller.signal });
-  } catch (error) {
-    if (isTimeoutMarker(controller.signal.reason) || isTimeoutMarker(error)) {
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: controller.signal });
+    } catch (error) {
+      throw classifyFetchFailure(error, controller, externalSignal);
+    }
+
+    if (!response.ok) {
       throw new BlockscoutApiError(
-        "Blockscout API request timed out. Please try again.",
-        null,
-        "timeout",
+        `Blockscout API request failed (${response.status}).`,
+        response.status,
+        "http",
       );
     }
-    if (
-      externalSignal?.aborted ||
-      (isAbortError(error) && !isTimeoutMarker(controller.signal.reason))
-    ) {
-      throw new BlockscoutApiError("Request was cancelled.", null, "aborted");
+
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch (error) {
+      if (isTimeoutMarker(controller.signal.reason) || isTimeoutMarker(error)) {
+        throw new BlockscoutApiError(
+          "Blockscout API request timed out. Please try again.",
+          null,
+          "timeout",
+        );
+      }
+      if (externalSignal?.aborted) {
+        throw new BlockscoutApiError("Request was cancelled.", null, "aborted");
+      }
+      if (isAbortError(error)) {
+        throw new BlockscoutApiError("Request was cancelled.", null, "aborted");
+      }
+      throw new BlockscoutApiError(
+        "Blockscout API returned invalid JSON.",
+        null,
+        "invalid",
+      );
     }
-    throw new BlockscoutApiError(
-      "Unable to reach the Blockscout API. Check your network connection and try again.",
-      null,
-      "network",
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new BlockscoutApiError(
+        "Blockscout API returned an unexpected payload.",
+        null,
+        "invalid",
+      );
+    }
+
+    const page = data as BlockscoutNftPage;
+    const rawItems = page.items;
+    const items = mapBlockscoutNftItems(
+      Array.isArray(rawItems) ? rawItems : [],
     );
+
+    return {
+      items,
+      nextPageParams: normalizeNextPageParams(page.next_page_params),
+    };
   } finally {
     clearTimeout(timeoutId);
     if (externalSignal) {
       externalSignal.removeEventListener("abort", onExternalAbort);
     }
   }
-
-  if (!response.ok) {
-    throw new BlockscoutApiError(
-      `Blockscout API request failed (${response.status}).`,
-      response.status,
-      "http",
-    );
-  }
-
-  let data: unknown;
-  try {
-    data = await response.json();
-  } catch (error) {
-    if (externalSignal?.aborted || isAbortError(error)) {
-      throw new BlockscoutApiError("Request was cancelled.", null, "aborted");
-    }
-    throw new BlockscoutApiError(
-      "Blockscout API returned invalid JSON.",
-      null,
-      "invalid",
-    );
-  }
-
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new BlockscoutApiError(
-      "Blockscout API returned an unexpected payload.",
-      null,
-      "invalid",
-    );
-  }
-
-  const page = data as BlockscoutNftPage;
-  const rawItems = page.items;
-  const items = mapBlockscoutNftItems(Array.isArray(rawItems) ? rawItems : []);
-
-  return {
-    items,
-    nextPageParams: normalizeNextPageParams(page.next_page_params),
-  };
 }
