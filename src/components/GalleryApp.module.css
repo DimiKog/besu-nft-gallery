@@ -5,6 +5,27 @@
   width: 100%;
 }
 
+.discoverShell {
+  --discover-bg: #080f20;
+  --discover-surface: #111b30;
+  --discover-surface-elevated: #17233b;
+  --discover-text: #f4f7ff;
+  --discover-text-muted: #a5b2ca;
+  --discover-border: #273653;
+  --discover-purple: #7558f6;
+  --discover-cyan: #28c7f7;
+  --discover-education: #258cf4;
+  --discover-identity: #9564f5;
+  --discover-research: #20bfa8;
+  min-height: 100vh;
+  gap: 0;
+  background:
+    radial-gradient(circle at 15% -10%, rgba(117, 88, 246, 0.22), transparent 40%),
+    radial-gradient(circle at 85% 0%, rgba(40, 199, 247, 0.12), transparent 35%),
+    var(--discover-bg);
+  color: var(--discover-text);
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -13,6 +34,12 @@
   max-width: 72rem;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 3.5rem;
+}
+
+.discoverApp {
+  max-width: 84rem;
+  gap: 1.85rem;
+  padding: 1.4rem 1.6rem 4rem;
 }
 
 .header {

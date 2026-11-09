@@ -1,0 +1,47 @@
+.root {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 16rem;
+}
+
+.glow {
+  position: absolute;
+  inset: 8% 6%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 40%, rgba(40, 199, 247, 0.2), transparent 55%),
+    radial-gradient(circle at 65% 55%, rgba(117, 88, 246, 0.26), transparent 52%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.frame {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 34rem);
+  aspect-ratio: 1536 / 1024;
+}
+
+.picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    filter: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .root {
+    min-height: 12rem;
+  }
+
+  .frame {
+    width: min(100%, 26rem);
+  }
+}

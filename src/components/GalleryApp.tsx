@@ -534,17 +534,24 @@ export function GalleryApp() {
         : "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address.";
 
   return (
-    <div className={styles.shell}>
+    <div
+      className={
+        isDiscoverMode ? `${styles.shell} ${styles.discoverShell}` : styles.shell
+      }
+    >
       <AppNav
         active={resolveActiveNav(mode)}
+        theme={isDiscoverMode ? "dark" : "light"}
         onNavigate={handleNavigate}
       />
 
-      <div className={styles.app}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>Besu NFT Gallery</h1>
-          <p className={styles.subtitle}>{subtitle}</p>
-        </header>
+      <div className={isDiscoverMode ? `${styles.app} ${styles.discoverApp}` : styles.app}>
+        {isDiscoverMode ? null : (
+          <header className={styles.header}>
+            <h1 className={styles.title}>Besu NFT Gallery</h1>
+            <p className={styles.subtitle}>{subtitle}</p>
+          </header>
+        )}
 
         {isDiscoverMode ? (
           <DiscoverHome
