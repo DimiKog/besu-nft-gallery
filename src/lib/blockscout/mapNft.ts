@@ -7,7 +7,17 @@ import type {
   BlockscoutNftItem,
 } from "./types";
 
+export type MapBlockscoutNftOptions = {
+  /** Used when the instance payload omits nested `token` address fields. */
+  fallbackContractAddress?: string | null;
+  /** Used when the instance payload omits token type. */
+  fallbackTokenType?: string | null;
+};
+
 function asNonEmptyString(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(Math.trunc(value));
+  }
   if (typeof value !== "string") {
     return null;
   }
@@ -139,11 +149,51 @@ function pickImageUrls(item: BlockscoutNftItem): {
   return { imageUrl: null, imageFallbackUrl: null };
 }
 
-export function mapBlockscoutNftItem(item: BlockscoutNftItem): NftItem | null {
-  const tokenId = asNonEmptyString(item.id);
+/** Extract owner address from Blockscout owner object or string. */
+export function mapOwnerAddress(owner: unknown): string | null {
+  if (typeof owner === "string") {
+    return asNonEmptyString(owner);
+  }
+  if (!owner || typeof owner !== "object" || Array.isArray(owner)) {
+    return null;
+  }
+
+  const record = owner as Record<string, unknown>;
+  return (
+    asNonEmptyString(record.hash) ??
+    asNonEmptyString(record.address_hash) ??
+    asNonEmptyString(record.address)
+  );
+}
+
+/**
+ * Token IDs must remain strings — never coerce through Number
+ * (avoids precision loss for large IDs).
+ */
+export function mapTokenId(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // Only safe integers are lossless via Number; still stringify trunc.
+    return String(Math.trunc(value));
+  }
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+  return null;
+}
+
+export function mapBlockscoutNftItem(
+  item: BlockscoutNftItem,
+  options: MapBlockscoutNftOptions = {},
+): NftItem | null {
+  const tokenId = mapTokenId(item.id);
   const contractAddress =
     asNonEmptyString(item.token?.address_hash) ??
-    asNonEmptyString(item.token?.address);
+    asNonEmptyString(item.token?.address) ??
+    asNonEmptyString(options.fallbackContractAddress);
 
   if (!tokenId || !contractAddress) {
     return null;
@@ -151,12 +201,17 @@ export function mapBlockscoutNftItem(item: BlockscoutNftItem): NftItem | null {
 
   const { imageUrl, imageFallbackUrl } = pickImageUrls(item);
   const metadata = item.metadata;
+  const tokenTypeSource =
+    item.token_type ??
+    item.token?.type ??
+    options.fallbackTokenType ??
+    undefined;
 
   return {
     id: `${contractAddress}-${tokenId}`,
     tokenId,
     contractAddress,
-    tokenType: mapTokenType(item.token_type ?? item.token?.type),
+    tokenType: mapTokenType(tokenTypeSource),
     collectionName: asDecodedText(item.token?.name),
     collectionSymbol: asDecodedText(item.token?.symbol),
     name: asDecodedText(metadata?.name),
@@ -167,14 +222,18 @@ export function mapBlockscoutNftItem(item: BlockscoutNftItem): NftItem | null {
     imageFallbackUrl,
     rawImageRef: pickRawImageRef(item),
     balance: asNonEmptyString(item.value),
+    ownerAddress: mapOwnerAddress(item.owner),
   };
 }
 
-export function mapBlockscoutNftItems(items: BlockscoutNftItem[]): NftItem[] {
+export function mapBlockscoutNftItems(
+  items: BlockscoutNftItem[],
+  options: MapBlockscoutNftOptions = {},
+): NftItem[] {
   const mapped: NftItem[] = [];
 
   for (const item of items) {
-    const nft = mapBlockscoutNftItem(item);
+    const nft = mapBlockscoutNftItem(item, options);
     if (nft) {
       mapped.push(nft);
     }

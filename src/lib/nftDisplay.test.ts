@@ -23,6 +23,7 @@ function sampleNft(overrides: Partial<NftItem> = {}): NftItem {
     imageFallbackUrl: null,
     rawImageRef: null,
     balance: "1",
+    ownerAddress: null,
     ...overrides,
   };
 }

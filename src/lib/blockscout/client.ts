@@ -1,7 +1,20 @@
+import { isValidEthereumAddress, normalizeAddressInput } from "@/lib/address";
+import type {
+  CollectionDetails,
+  CollectionSummary,
+  CollectionTokenTypeFilter,
+  PaginatedResult,
+} from "@/lib/collection";
 import type { NftItem } from "@/lib/nft";
 import { getBlockscoutBaseUrl } from "./config";
-import { mapBlockscoutNftItems } from "./mapNft";
-import type { BlockscoutNftPage } from "./types";
+import { mapBlockscoutCollection, mapBlockscoutCollections } from "./mapCollection";
+import { mapBlockscoutNftItem, mapBlockscoutNftItems } from "./mapNft";
+import type {
+  BlockscoutNftItem,
+  BlockscoutNftPage,
+  BlockscoutTokenCollection,
+  BlockscoutTokenCollectionPage,
+} from "./types";
 
 export { getBlockscoutBaseUrl } from "./config";
 
@@ -19,18 +32,23 @@ export type BlockscoutErrorCode =
   | "timeout"
   | "aborted";
 
-export type FetchNftsByOwnerPageOptions = {
-  pageParams?: BlockscoutPageParams | null;
+export type BlockscoutRequestOptions = {
   signal?: AbortSignal;
   /** Request timeout in milliseconds. Defaults to getBlockscoutTimeoutMs(). */
   timeoutMs?: number;
 };
 
-export type NftsByOwnerPage = {
-  items: NftItem[];
-  /** Cursor for the next page, or null when pagination is finished. */
-  nextPageParams: BlockscoutPageParams | null;
+export type BlockscoutPageOptions = BlockscoutRequestOptions & {
+  pageParams?: BlockscoutPageParams | null;
 };
+
+export type FetchNftsByOwnerPageOptions = BlockscoutPageOptions;
+
+export type NftsByOwnerPage = PaginatedResult<NftItem>;
+
+export type CollectionsPage = PaginatedResult<CollectionSummary>;
+
+export type CollectionInstancesPage = PaginatedResult<NftItem>;
 
 export class BlockscoutApiError extends Error {
   readonly status: number | null;
@@ -105,6 +123,21 @@ export function shouldFetchNextPage(
   return nextPageParams != null && !isLoading;
 }
 
+function applyPageParams(
+  url: URL,
+  pageParams: BlockscoutPageParams | null,
+): void {
+  if (!pageParams) {
+    return;
+  }
+  for (const [key, value] of Object.entries(pageParams)) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+    url.searchParams.set(key, String(value));
+  }
+}
+
 function buildNftUrl(
   address: string,
   pageParams: BlockscoutPageParams | null,
@@ -112,18 +145,66 @@ function buildNftUrl(
   const url = new URL(
     `${getBlockscoutBaseUrl()}/api/v2/addresses/${encodeURIComponent(address)}/nft`,
   );
+  // Apply cursor first, then fixed filters so pagination cannot override type.
+  applyPageParams(url, pageParams);
   url.searchParams.set("type", NFT_TYPES);
-
-  if (pageParams) {
-    for (const [key, value] of Object.entries(pageParams)) {
-      if (value === null || value === undefined) {
-        continue;
-      }
-      url.searchParams.set(key, String(value));
-    }
-  }
-
   return url.toString();
+}
+
+function buildCollectionsUrl(
+  type: CollectionTokenTypeFilter,
+  pageParams: BlockscoutPageParams | null,
+): string {
+  const url = new URL(`${getBlockscoutBaseUrl()}/api/v2/tokens`);
+  // Apply cursor first, then fixed filters so pagination cannot override type.
+  applyPageParams(url, pageParams);
+  url.searchParams.set("type", type);
+  return url.toString();
+}
+
+function buildCollectionDetailsUrl(address: string): string {
+  return `${getBlockscoutBaseUrl()}/api/v2/tokens/${encodeURIComponent(address)}`;
+}
+
+function buildCollectionInstancesUrl(
+  address: string,
+  pageParams: BlockscoutPageParams | null,
+): string {
+  const url = new URL(
+    `${getBlockscoutBaseUrl()}/api/v2/tokens/${encodeURIComponent(address)}/instances`,
+  );
+  applyPageParams(url, pageParams);
+  return url.toString();
+}
+
+function buildCollectionInstanceUrl(
+  address: string,
+  tokenId: string,
+): string {
+  return `${getBlockscoutBaseUrl()}/api/v2/tokens/${encodeURIComponent(address)}/instances/${encodeURIComponent(tokenId)}`;
+}
+
+function requireContractAddress(address: string): string {
+  const normalized = normalizeAddressInput(address);
+  if (!isValidEthereumAddress(normalized)) {
+    throw new BlockscoutApiError(
+      "Invalid contract address.",
+      null,
+      "invalid",
+    );
+  }
+  return normalized;
+}
+
+function requireTokenId(tokenId: string): string {
+  if (typeof tokenId !== "string") {
+    throw new BlockscoutApiError("Invalid token ID.", null, "invalid");
+  }
+  const trimmed = tokenId.trim();
+  if (!trimmed) {
+    throw new BlockscoutApiError("Invalid token ID.", null, "invalid");
+  }
+  return trimmed;
 }
 
 function isAbortError(error: unknown): boolean {
@@ -181,15 +262,14 @@ function classifyFetchFailure(
 }
 
 /**
- * Fetch a single NFT ownership page from Blockscout.
- * Intended for browser-side use against the Blockscout REST API (CORS).
+ * Shared Blockscout GET → JSON object helper.
+ * Preserves timeout vs abort vs HTTP vs invalid distinctions.
  */
-export async function fetchNftsByOwnerPage(
-  address: string,
-  options: FetchNftsByOwnerPageOptions = {},
-): Promise<NftsByOwnerPage> {
+async function fetchBlockscoutJson(
+  url: string,
+  options: BlockscoutRequestOptions = {},
+): Promise<Record<string, unknown>> {
   const {
-    pageParams = null,
     signal: externalSignal,
     timeoutMs = getBlockscoutTimeoutMs(),
   } = options;
@@ -198,7 +278,6 @@ export async function fetchNftsByOwnerPage(
     throw new BlockscoutApiError("Request was cancelled.", null, "aborted");
   }
 
-  const url = buildNftUrl(address, pageParams);
   const controller = new AbortController();
   const timeoutMarker = createTimeoutMarker();
 
@@ -266,20 +345,126 @@ export async function fetchNftsByOwnerPage(
       );
     }
 
-    const page = data as BlockscoutNftPage;
-    const rawItems = page.items;
-    const items = mapBlockscoutNftItems(
-      Array.isArray(rawItems) ? rawItems : [],
-    );
-
-    return {
-      items,
-      nextPageParams: normalizeNextPageParams(page.next_page_params),
-    };
+    return data as Record<string, unknown>;
   } finally {
     clearTimeout(timeoutId);
     if (externalSignal) {
       externalSignal.removeEventListener("abort", onExternalAbort);
     }
   }
+}
+
+/**
+ * Fetch a single NFT ownership page from Blockscout.
+ * Intended for browser-side use against the Blockscout REST API (CORS).
+ */
+export async function fetchNftsByOwnerPage(
+  address: string,
+  options: FetchNftsByOwnerPageOptions = {},
+): Promise<NftsByOwnerPage> {
+  const { pageParams = null, signal, timeoutMs } = options;
+  const url = buildNftUrl(address, pageParams);
+  const data = await fetchBlockscoutJson(url, { signal, timeoutMs });
+  const page = data as BlockscoutNftPage;
+  const rawItems = page.items;
+
+  return {
+    items: mapBlockscoutNftItems(Array.isArray(rawItems) ? rawItems : []),
+    nextPageParams: normalizeNextPageParams(page.next_page_params),
+  };
+}
+
+/**
+ * List NFT collections (ERC-721 or ERC-1155) from Blockscout.
+ * Preserves `next_page_params` for incremental pagination.
+ */
+export async function fetchNftCollectionsPage(
+  type: CollectionTokenTypeFilter,
+  options: BlockscoutPageOptions = {},
+): Promise<CollectionsPage> {
+  const { pageParams = null, signal, timeoutMs } = options;
+  const url = buildCollectionsUrl(type, pageParams);
+  const data = await fetchBlockscoutJson(url, { signal, timeoutMs });
+  const page = data as BlockscoutTokenCollectionPage;
+  const rawItems = page.items;
+
+  return {
+    items: mapBlockscoutCollections(Array.isArray(rawItems) ? rawItems : []),
+    nextPageParams: normalizeNextPageParams(page.next_page_params),
+  };
+}
+
+/**
+ * Fetch normalized details for a single NFT collection contract.
+ */
+export async function fetchCollectionDetails(
+  contractAddress: string,
+  options: BlockscoutRequestOptions = {},
+): Promise<CollectionDetails> {
+  const address = requireContractAddress(contractAddress);
+  const url = buildCollectionDetailsUrl(address);
+  const data = await fetchBlockscoutJson(url, options);
+  const collection = mapBlockscoutCollection(
+    data as BlockscoutTokenCollection,
+  );
+
+  if (!collection) {
+    throw new BlockscoutApiError(
+      "Blockscout API returned an unusable collection payload.",
+      null,
+      "invalid",
+    );
+  }
+
+  return collection;
+}
+
+/**
+ * Fetch one page of NFT instances for a collection contract.
+ * Instances are normalized to the shared `NftItem` model.
+ */
+export async function fetchCollectionInstancesPage(
+  contractAddress: string,
+  options: BlockscoutPageOptions = {},
+): Promise<CollectionInstancesPage> {
+  const address = requireContractAddress(contractAddress);
+  const { pageParams = null, signal, timeoutMs } = options;
+  const url = buildCollectionInstancesUrl(address, pageParams);
+  const data = await fetchBlockscoutJson(url, { signal, timeoutMs });
+  const page = data as BlockscoutNftPage;
+  const rawItems = page.items;
+
+  return {
+    items: mapBlockscoutNftItems(Array.isArray(rawItems) ? rawItems : [], {
+      fallbackContractAddress: address,
+    }),
+    nextPageParams: normalizeNextPageParams(page.next_page_params),
+  };
+}
+
+/**
+ * Fetch a single NFT instance by contract address and token ID (string).
+ */
+export async function fetchCollectionInstance(
+  contractAddress: string,
+  tokenId: string,
+  options: BlockscoutRequestOptions = {},
+): Promise<NftItem> {
+  const address = requireContractAddress(contractAddress);
+  const id = requireTokenId(tokenId);
+  const url = buildCollectionInstanceUrl(address, id);
+  const data = await fetchBlockscoutJson(url, options);
+  const nft = mapBlockscoutNftItem(data as BlockscoutNftItem, {
+    fallbackContractAddress: address,
+  });
+
+  if (!nft) {
+    throw new BlockscoutApiError(
+      "Blockscout API returned an unusable NFT instance payload.",
+      null,
+      "invalid",
+    );
+  }
+
+  return nft;
 }

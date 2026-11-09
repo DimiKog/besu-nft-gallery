@@ -116,6 +116,29 @@ describe("fetchNftsByOwnerPage", () => {
     assert.equal(page.nextPageParams, null);
   });
 
+  it("preserves the wallet NFT type filter when the cursor includes a conflicting type", async () => {
+    mock.method(globalThis, "fetch", async (input) => {
+      const url = new URL(String(input));
+      assert.equal(url.searchParams.get("type"), "ERC-721,ERC-1155");
+      assert.equal(url.searchParams.get("token_id"), "1");
+      assert.equal(url.searchParams.get("items_count"), "50");
+      return jsonResponse({
+        items: [SAMPLE_ITEM],
+        next_page_params: null,
+      });
+    });
+
+    const page = await fetchNftsByOwnerPage("0xabc", {
+      pageParams: {
+        type: "ERC-20",
+        token_id: "1",
+        items_count: 50,
+      },
+    });
+    assert.equal(page.items.length, 1);
+    assert.equal(page.nextPageParams, null);
+  });
+
   it("treats empty next_page_params as end of pagination", async () => {
     mock.method(globalThis, "fetch", async () =>
       jsonResponse({ items: [SAMPLE_ITEM], next_page_params: {} }),

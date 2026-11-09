@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mapAttributes, mapBlockscoutNftItem } from "./mapNft";
+import {
+  mapAttributes,
+  mapBlockscoutNftItem,
+  mapOwnerAddress,
+  mapTokenId,
+} from "./mapNft";
 import type { BlockscoutNftItem } from "./types";
 
 function baseItem(
@@ -208,5 +213,70 @@ describe("mapBlockscoutNftItem", () => {
     assert.equal(nft.collectionName, "Test Collection");
     assert.equal(nft.tokenId, "1");
     assert.equal(nft.tokenType, "ERC-721");
+    assert.equal(nft.ownerAddress, null);
+  });
+
+  it("maps owner hash and preserves large string token IDs", () => {
+    const largeId = "9007199254740993";
+    const nft = mapBlockscoutNftItem(
+      baseItem({
+        id: largeId,
+        owner: { hash: "0x05CFF42Fa58D7cb438FFC9182D6865d39622c50F" },
+      }),
+    );
+
+    assert.ok(nft);
+    assert.equal(nft.tokenId, largeId);
+    assert.equal(
+      nft.ownerAddress,
+      "0x05CFF42Fa58D7cb438FFC9182D6865d39622c50F",
+    );
+  });
+
+  it("uses fallback contract address when token info is missing", () => {
+    const nft = mapBlockscoutNftItem(
+      {
+        id: "9",
+        metadata: { name: "Fallback" },
+        token: null,
+      },
+      {
+        fallbackContractAddress:
+          "0x5Ad2E39FAeE577D233059902eE94bc8df66d69c9",
+        fallbackTokenType: "ERC-721",
+      },
+    );
+
+    assert.ok(nft);
+    assert.equal(
+      nft.contractAddress,
+      "0x5Ad2E39FAeE577D233059902eE94bc8df66d69c9",
+    );
+    assert.equal(nft.tokenType, "ERC-721");
+    assert.equal(nft.name, "Fallback");
+  });
+});
+
+describe("mapOwnerAddress", () => {
+  it("supports owner object and string shapes", () => {
+    assert.equal(
+      mapOwnerAddress({ hash: "0x1111111111111111111111111111111111111111" }),
+      "0x1111111111111111111111111111111111111111",
+    );
+    assert.equal(
+      mapOwnerAddress("0x2222222222222222222222222222222222222222"),
+      "0x2222222222222222222222222222222222222222",
+    );
+    assert.equal(mapOwnerAddress(null), null);
+    assert.equal(mapOwnerAddress({}), null);
+  });
+});
+
+describe("mapTokenId", () => {
+  it("keeps token IDs as strings without Number precision loss", () => {
+    assert.equal(mapTokenId("9007199254740993"), "9007199254740993");
+    assert.equal(mapTokenId(" 42 "), "42");
+    assert.equal(mapTokenId(""), null);
+    assert.equal(mapTokenId(null), null);
   });
 });

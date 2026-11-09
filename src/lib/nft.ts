@@ -23,4 +23,6 @@ export type NftItem = {
   imageFallbackUrl: string | null;
   rawImageRef: string | null;
   balance: string | null;
+  /** Current owner address when returned by Blockscout; null when unknown. */
+  ownerAddress: string | null;
 };
