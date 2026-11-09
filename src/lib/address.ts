@@ -7,3 +7,16 @@ export function isValidEthereumAddress(value: string): boolean {
 export function normalizeAddressInput(value: string): string {
   return value.trim();
 }
+
+/**
+ * Whether an NFT owner address is safe to use for wallet-gallery navigation.
+ * Null/blank/malformed values are not navigable.
+ */
+export function isNavigableOwnerAddress(
+  value: string | null | undefined,
+): boolean {
+  if (value == null) {
+    return false;
+  }
+  return isValidEthereumAddress(normalizeAddressInput(value));
+}

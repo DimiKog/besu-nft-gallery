@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { NftItem } from "./nft";
 import {
   buildBlockscoutTokenInstanceUrl,
+  buildBlockscoutTokenUrl,
   getNftDisplayName,
   shouldShowBalance,
 } from "./nftDisplay";
@@ -83,6 +84,34 @@ describe("buildBlockscoutTokenInstanceUrl", () => {
       ),
       "https://example.org/token/0x1/instance/2",
     );
+  });
+});
+
+describe("buildBlockscoutTokenUrl", () => {
+  it("builds the collection contract page URL", () => {
+    assert.equal(
+      buildBlockscoutTokenUrl(
+        "0x5Ad2E39FAeE577D233059902eE94bc8df66d69c9",
+        "https://blockexplorer.dimikog.org/",
+      ),
+      "https://blockexplorer.dimikog.org/token/0x5Ad2E39FAeE577D233059902eE94bc8df66d69c9",
+    );
+  });
+});
+
+describe("owner fields for collection detail modal", () => {
+  it("keeps owner addresses available for View Owner's NFTs navigation", () => {
+    const nft = sampleNft({
+      ownerAddress: "0x05CFF42Fa58D7cb438FFC9182D6865d39622c50F",
+    });
+    assert.equal(
+      nft.ownerAddress,
+      "0x05CFF42Fa58D7cb438FFC9182D6865d39622c50F",
+    );
+  });
+
+  it("leaves wallet NFTs without owner information unchanged", () => {
+    assert.equal(sampleNft().ownerAddress, null);
   });
 });
 

@@ -1,0 +1,139 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 40rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.65rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.symbol {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 550;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.metaRow {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.35rem 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.metaRow dt {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+  align-self: start;
+  padding-top: 0.2rem;
+}
+
+.metaRow dd {
+  margin: 0;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.secondaryButton {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.secondaryButton:hover {
+  background: #f7f9fc;
+  border-color: #a8b3c4;
+}
+
+.secondaryButton:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.link {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 550;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.link:hover {
+  color: var(--accent-hover);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 480px) {
+  .metaRow {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+}

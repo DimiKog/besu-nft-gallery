@@ -31,3 +31,12 @@ export function buildBlockscoutTokenInstanceUrl(
   const base = baseUrl.replace(/\/+$/, "");
   return `${base}/token/${encodeURIComponent(contractAddress)}/instance/${encodeURIComponent(tokenId)}`;
 }
+
+/** Blockscout token (collection / contract) page URL. */
+export function buildBlockscoutTokenUrl(
+  contractAddress: string,
+  baseUrl: string = getBlockscoutBaseUrl(),
+): string {
+  const base = baseUrl.replace(/\/+$/, "");
+  return `${base}/token/${encodeURIComponent(contractAddress)}`;
+}

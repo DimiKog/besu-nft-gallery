@@ -13,9 +13,15 @@ import styles from "./NftDetailsModal.module.css";
 type NftDetailsModalProps = {
   nft: NftItem;
   onClose: () => void;
+  /** Navigate to the wallet gallery for this owner (collection mode). */
+  onViewOwnerNfts?: (ownerAddress: string) => void;
 };
 
-export function NftDetailsModal({ nft, onClose }: NftDetailsModalProps) {
+export function NftDetailsModal({
+  nft,
+  onClose,
+  onViewOwnerNfts,
+}: NftDetailsModalProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const title = getNftDisplayName(nft);
@@ -24,6 +30,7 @@ export function NftDetailsModal({ nft, onClose }: NftDetailsModalProps) {
     nft.contractAddress,
     nft.tokenId,
   );
+  const ownerAddress = nft.ownerAddress;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -118,6 +125,22 @@ export function NftDetailsModal({ nft, onClose }: NftDetailsModalProps) {
               <span className={styles.mono}>{nft.contractAddress}</span>
             </p>
 
+            {ownerAddress ? (
+              <div className={styles.field}>
+                <span className={styles.label}>Owner</span>
+                <span className={styles.mono}>{ownerAddress}</span>
+                {onViewOwnerNfts ? (
+                  <button
+                    type="button"
+                    className={styles.ownerAction}
+                    onClick={() => onViewOwnerNfts(ownerAddress)}
+                  >
+                    View Owner&apos;s NFTs
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             {nft.attributes.length > 0 ? (
               <div className={styles.field}>
                 <span className={styles.label}>Attributes</span>
@@ -144,6 +167,7 @@ export function NftDetailsModal({ nft, onClose }: NftDetailsModalProps) {
                   rel="noopener noreferrer"
                 >
                   External link
+                  <span className={styles.srOnly}> (opens in a new tab)</span>
                 </a>
               ) : null}
               <a
@@ -153,6 +177,7 @@ export function NftDetailsModal({ nft, onClose }: NftDetailsModalProps) {
                 rel="noopener noreferrer"
               >
                 View on Blockscout
+                <span className={styles.srOnly}> (opens in a new tab)</span>
               </a>
             </div>
           </div>
