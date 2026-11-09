@@ -18,9 +18,13 @@ import {
 } from "@/lib/blockscout/client";
 import type { CollectionDetails } from "@/lib/collection";
 import {
+  buildCollectionGallerySearch,
+  buildCollectionsViewSearch,
   buildHomeGallerySearch,
   buildWalletGallerySearch,
+  resolveActiveNav,
   resolveGalleryDeepLink,
+  shouldSkipGalleryNav,
 } from "@/lib/galleryQuery";
 import type { NftItem } from "@/lib/nft";
 import {
@@ -32,13 +36,15 @@ import {
   type RequestedCursorHistory,
 } from "@/lib/nftPagination";
 import { AddressForm } from "./AddressForm";
+import { AppNav } from "./AppNav";
 import { CollectionHeader } from "./CollectionHeader";
+import { CollectionsDirectory } from "./CollectionsDirectory";
 import { NftDetailsModal } from "./NftDetailsModal";
 import { NftGrid } from "./NftGrid";
 import styles from "./GalleryApp.module.css";
 
 type Status = "idle" | "loading" | "success" | "error";
-type GalleryMode = "wallet" | "collection";
+type GalleryMode = "wallet" | "collection" | "collections";
 
 const INVALID_ADDRESS_MESSAGE =
   "Enter a valid Ethereum address (0x followed by 40 hexadecimal characters).";
@@ -73,7 +79,7 @@ export function GalleryApp() {
   const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const loadingMoreRef = useRef(false);
-  /** Requested cursors for the active collection pagination session. */
+  /** Requested cursors for the active collection-detail pagination session. */
   const collectionCursorHistoryRef = useRef<RequestedCursorHistory>(
     createRequestedCursorHistory(),
   );
@@ -120,6 +126,30 @@ export function GalleryApp() {
     setNextPageParams(null);
     collectionCursorHistoryRef.current = createRequestedCursorHistory();
     clearSelection();
+  }
+
+  function enterWalletIdle() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    resetSharedResults();
+    setMode("wallet");
+    setStatus("idle");
+    setAddress("");
+    setQueriedAddress(null);
+    setQueriedContract(null);
+    setCollection(null);
+  }
+
+  function enterCollectionsDirectory() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    resetSharedResults();
+    setMode("collections");
+    setStatus("idle");
+    setAddress("");
+    setQueriedAddress(null);
+    setQueriedContract(null);
+    setCollection(null);
   }
 
   function showInvalidWalletAddress(rawAddress: string) {
@@ -241,6 +271,11 @@ export function GalleryApp() {
 
     const action = resolveGalleryDeepLink(search);
     if (action.type === "none") {
+      enterWalletIdle();
+      return;
+    }
+    if (action.type === "collections") {
+      enterCollectionsDirectory();
       return;
     }
     if (action.type === "collection-invalid") {
@@ -268,19 +303,6 @@ export function GalleryApp() {
   useEffect(() => {
     function onPopState() {
       userHasInitiatedSearchRef.current = false;
-      const action = resolveGalleryDeepLink(window.location.search);
-      if (action.type === "none") {
-        abortRef.current?.abort();
-        abortRef.current = null;
-        resetSharedResults();
-        setMode("wallet");
-        setStatus("idle");
-        setAddress("");
-        setQueriedAddress(null);
-        setQueriedContract(null);
-        setCollection(null);
-        return;
-      }
       applyDeepLink(window.location.search);
     }
 
@@ -309,16 +331,37 @@ export function GalleryApp() {
 
   function handleBackToWalletGallery() {
     userHasInitiatedSearchRef.current = true;
-    abortRef.current?.abort();
-    abortRef.current = null;
-    resetSharedResults();
-    setMode("wallet");
-    setStatus("idle");
-    setAddress("");
-    setQueriedAddress(null);
-    setQueriedContract(null);
-    setCollection(null);
+    enterWalletIdle();
     pushGalleryUrl(buildHomeGallerySearch(window.location.search));
+  }
+
+  function handleNavigate(destination: "collections" | "wallet") {
+    if (
+      shouldSkipGalleryNav({
+        destination,
+        mode,
+        currentSearch: window.location.search,
+      })
+    ) {
+      return;
+    }
+
+    userHasInitiatedSearchRef.current = true;
+    if (destination === "collections") {
+      enterCollectionsDirectory();
+      pushGalleryUrl(buildCollectionsViewSearch(window.location.search));
+      return;
+    }
+    enterWalletIdle();
+    pushGalleryUrl(buildHomeGallerySearch(window.location.search));
+  }
+
+  function handleSelectDirectoryCollection(contractAddress: string) {
+    userHasInitiatedSearchRef.current = true;
+    pushGalleryUrl(
+      buildCollectionGallerySearch(window.location.search, contractAddress),
+    );
+    void loadCollectionFirstPage(contractAddress);
   }
 
   function handleViewOwnerNfts(ownerAddress: string) {
@@ -383,6 +426,10 @@ export function GalleryApp() {
       return;
     }
 
+    if (mode !== "collection") {
+      return;
+    }
+
     if (
       !queriedContract ||
       !shouldFetchNextPage(nextPageParams, loadingMoreRef.current)
@@ -432,147 +479,174 @@ export function GalleryApp() {
   }
 
   const isCollectionMode = mode === "collection";
+  const isCollectionsDirectory = mode === "collections";
+  const isWalletMode = mode === "wallet";
 
   const showLoadMore = isCollectionMode
     ? shouldShowCollectionLoadMore(status, nextPageParams)
-    : status === "success" &&
+    : isWalletMode &&
+      status === "success" &&
       items.length > 0 &&
       shouldFetchNextPage(nextPageParams, false);
 
   const showEmptyState =
-    status === "success" && items.length === 0 && !showLoadMore;
+    (isWalletMode || isCollectionMode) &&
+    status === "success" &&
+    items.length === 0 &&
+    !showLoadMore;
 
   const showResultsSection =
-    status === "success" && (items.length > 0 || showLoadMore);
+    (isWalletMode || isCollectionMode) &&
+    status === "success" &&
+    (items.length > 0 || showLoadMore);
+
+  const subtitle = isCollectionsDirectory
+    ? "Browse every NFT contract indexed on Besu Edu-Net."
+    : isCollectionMode
+      ? "Collection explorer for Besu Edu-Net. Browse NFTs from a smart contract without connecting a wallet."
+      : "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address.";
 
   return (
-    <div className={styles.app}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Besu NFT Gallery</h1>
-        <p className={styles.subtitle}>
-          {isCollectionMode
-            ? "Collection explorer for Besu Edu-Net. Browse NFTs from a smart contract without connecting a wallet."
-            : "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address."}
-        </p>
-      </header>
+    <div className={styles.shell}>
+      <AppNav
+        active={resolveActiveNav(mode)}
+        onNavigate={handleNavigate}
+      />
 
-      {isCollectionMode ? (
-        <div className={styles.modeBar}>
-          <button
-            type="button"
-            className={styles.textButton}
-            onClick={handleBackToWalletGallery}
-          >
-            Back to Wallet Gallery
-          </button>
-          {queriedContract ? (
-            <p className={styles.status}>
-              Collection{" "}
-              <span className={styles.mono}>{queriedContract}</span>
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <AddressForm
-          value={address}
-          disabled={status === "loading"}
-          onChange={setAddress}
-          onSubmit={handleSubmit}
-        />
-      )}
+      <div className={styles.app}>
+        <header className={styles.header}>
+          <h1 className={styles.title}>Besu NFT Gallery</h1>
+          <p className={styles.subtitle}>{subtitle}</p>
+        </header>
 
-      {status === "loading" ? (
-        <p className={styles.status} role="status">
-          {isCollectionMode
-            ? "Loading collection from Blockscout…"
-            : "Loading NFTs from Blockscout…"}
-        </p>
-      ) : null}
+        {isCollectionsDirectory ? (
+          <CollectionsDirectory
+            onSelectCollection={handleSelectDirectoryCollection}
+          />
+        ) : null}
 
-      {status === "error" && errorMessage ? (
-        <p className={styles.error} role="alert">
-          {errorMessage}
-        </p>
-      ) : null}
+        {isCollectionMode ? (
+          <div className={styles.modeBar}>
+            <button
+              type="button"
+              className={styles.textButton}
+              onClick={handleBackToWalletGallery}
+            >
+              Back to Wallet Gallery
+            </button>
+            {queriedContract ? (
+              <p className={styles.status}>
+                Collection{" "}
+                <span className={styles.mono}>{queriedContract}</span>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
-      {isCollectionMode && status === "success" && collection ? (
-        <CollectionHeader collection={collection} />
-      ) : null}
+        {isWalletMode ? (
+          <AddressForm
+            value={address}
+            disabled={status === "loading"}
+            onChange={setAddress}
+            onSubmit={handleSubmit}
+          />
+        ) : null}
 
-      {showEmptyState ? (
-        <p className={styles.status} role="status">
-          {isCollectionMode
-            ? `No NFTs found in this collection${queriedContract ? ` (${queriedContract})` : ""}.`
-            : `No NFTs found for ${queriedAddress}.`}
-        </p>
-      ) : null}
+        {(isWalletMode || isCollectionMode) && status === "loading" ? (
+          <p className={styles.status} role="status">
+            {isCollectionMode
+              ? "Loading collection from Blockscout…"
+              : "Loading NFTs from Blockscout…"}
+          </p>
+        ) : null}
 
-      {showResultsSection ? (
-        <section className={styles.results} aria-live="polite">
-          {items.length > 0 ? (
-            <p className={styles.status}>
-              {items.length} NFT{items.length === 1 ? "" : "s"}
-              {isCollectionMode ? (
-                <>
-                  {" "}
-                  in collection{" "}
-                  <span className={styles.mono}>
-                    {collection?.name ?? queriedContract}
-                  </span>
-                </>
-              ) : (
-                <>
-                  {" "}
-                  for <span className={styles.mono}>{queriedAddress}</span>
-                </>
-              )}
-            </p>
-          ) : (
-            <p className={styles.status} role="status">
-              No NFTs on this page yet. Load more to continue.
-            </p>
-          )}
-          {items.length > 0 ? (
-            <NftGrid items={items} onSelect={handleSelectNft} />
-          ) : null}
+        {(isWalletMode || isCollectionMode) &&
+        status === "error" &&
+        errorMessage ? (
+          <p className={styles.error} role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
 
-          {showLoadMore ? (
-            <div className={styles.loadMore}>
-              {loadMoreError ? (
-                <p className={styles.error} role="alert">
-                  {loadMoreError}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                className={styles.loadMoreButton}
-                disabled={loadingMore}
-                aria-busy={loadingMore}
-                onClick={handleLoadMore}
-              >
-                {loadingMore
-                  ? "Loading…"
-                  : loadMoreError
-                    ? "Retry"
-                    : "Load more"}
-              </button>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
+        {isCollectionMode && status === "success" && collection ? (
+          <CollectionHeader collection={collection} />
+        ) : null}
 
-      {selectedNft ? (
-        <NftDetailsModal
-          key={selectedNft.id}
-          nft={selectedNft}
-          onClose={() => clearSelection({ restoreFocus: true })}
-          onViewOwnerNfts={
-            isNavigableOwnerAddress(selectedNft.ownerAddress)
-              ? handleViewOwnerNfts
-              : undefined
-          }
-        />
-      ) : null}
+        {showEmptyState ? (
+          <p className={styles.status} role="status">
+            {isCollectionMode
+              ? `No NFTs found in this collection${queriedContract ? ` (${queriedContract})` : ""}.`
+              : `No NFTs found for ${queriedAddress}.`}
+          </p>
+        ) : null}
+
+        {showResultsSection ? (
+          <section className={styles.results} aria-live="polite">
+            {items.length > 0 ? (
+              <p className={styles.status}>
+                {items.length} NFT{items.length === 1 ? "" : "s"}
+                {isCollectionMode ? (
+                  <>
+                    {" "}
+                    in collection{" "}
+                    <span className={styles.mono}>
+                      {collection?.name ?? queriedContract}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    for <span className={styles.mono}>{queriedAddress}</span>
+                  </>
+                )}
+              </p>
+            ) : (
+              <p className={styles.status} role="status">
+                No NFTs on this page yet. Load more to continue.
+              </p>
+            )}
+            {items.length > 0 ? (
+              <NftGrid items={items} onSelect={handleSelectNft} />
+            ) : null}
+
+            {showLoadMore ? (
+              <div className={styles.loadMore}>
+                {loadMoreError ? (
+                  <p className={styles.error} role="alert">
+                    {loadMoreError}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className={styles.loadMoreButton}
+                  disabled={loadingMore}
+                  aria-busy={loadingMore}
+                  onClick={handleLoadMore}
+                >
+                  {loadingMore
+                    ? "Loading…"
+                    : loadMoreError
+                      ? "Retry"
+                      : "Load more"}
+                </button>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {selectedNft ? (
+          <NftDetailsModal
+            key={selectedNft.id}
+            nft={selectedNft}
+            onClose={() => clearSelection({ restoreFocus: true })}
+            onViewOwnerNfts={
+              isNavigableOwnerAddress(selectedNft.ownerAddress)
+                ? handleViewOwnerNfts
+                : undefined
+            }
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
