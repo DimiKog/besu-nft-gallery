@@ -2,6 +2,7 @@ import { isValidEthereumAddress, normalizeAddressInput } from "./address";
 import { resolveAddressDeepLink } from "./addressQuery";
 
 export type GalleryDeepLinkAction =
+  | { type: "discover" }
   | { type: "none" }
   | { type: "collections" }
   | { type: "collection"; contract: string }
@@ -9,7 +10,9 @@ export type GalleryDeepLinkAction =
   | { type: "wallet"; address: string }
   | { type: "wallet-invalid"; raw: string };
 
-export type GalleryNavDestination = "collections" | "wallet";
+export type GalleryNavDestination = "discover" | "collections" | "wallet";
+
+export type GalleryMode = "discover" | "wallet" | "collection" | "collections";
 
 function parseSearch(search: string): URLSearchParams {
   const query = search.startsWith("?") ? search.slice(1) : search;
@@ -34,7 +37,8 @@ function clearModeParams(params: URLSearchParams): void {
  * 1. `contract` present (valid or invalid) → Collection Detail / validation error
  * 2. `view=collections` → All Collections directory
  * 3. `address` → Wallet Gallery deep link
- * 4. otherwise → none (default Wallet Gallery idle)
+ * 4. `view=wallet` → Wallet Gallery idle
+ * 5. otherwise → Discover homepage
  */
 export function resolveGalleryDeepLink(
   search: string,
@@ -56,13 +60,18 @@ export function resolveGalleryDeepLink(
   }
 
   const wallet = resolveAddressDeepLink(search);
-  if (wallet.type === "none") {
-    return { type: "none" };
-  }
   if (wallet.type === "invalid") {
     return { type: "wallet-invalid", raw: wallet.raw };
   }
-  return { type: "wallet", address: wallet.address };
+  if (wallet.type === "load") {
+    return { type: "wallet", address: wallet.address };
+  }
+
+  if (view === "wallet") {
+    return { type: "none" };
+  }
+
+  return { type: "discover" };
 }
 
 /**
@@ -77,6 +86,18 @@ export function buildWalletGallerySearch(
   params.delete("contract");
   params.delete("view");
   params.set("address", address);
+  return toSearchString(params);
+}
+
+/**
+ * Build the Wallet Gallery idle search string.
+ * Sets `view=wallet`, removes `address`/`contract`, preserves unrelated params.
+ */
+export function buildWalletViewSearch(currentSearch: string): string {
+  const params = parseSearch(currentSearch);
+  params.delete("address");
+  params.delete("contract");
+  params.set("view", "wallet");
   return toSearchString(params);
 }
 
@@ -108,7 +129,8 @@ export function buildCollectionsViewSearch(currentSearch: string): string {
 }
 
 /**
- * Clear mode-specific params (`address`, `contract`, `view`) while preserving others.
+ * Build the Discover homepage search string.
+ * Clears mode-specific params (`address`, `contract`, `view`) while preserving others.
  */
 export function buildHomeGallerySearch(currentSearch: string): string {
   const params = parseSearch(currentSearch);
@@ -117,9 +139,10 @@ export function buildHomeGallerySearch(currentSearch: string): string {
 }
 
 /** Active nav highlight for the current resolved deep link / mode. */
-export function resolveActiveNav(
-  mode: "wallet" | "collection" | "collections",
-): GalleryNavDestination {
+export function resolveActiveNav(mode: GalleryMode): GalleryNavDestination {
+  if (mode === "discover") {
+    return "discover";
+  }
   if (mode === "collections" || mode === "collection") {
     return "collections";
   }
@@ -133,10 +156,17 @@ export function resolveActiveNav(
  */
 export function shouldSkipGalleryNav(input: {
   destination: GalleryNavDestination;
-  mode: "wallet" | "collection" | "collections";
+  mode: GalleryMode;
   currentSearch: string;
 }): boolean {
   const normalizedCurrent = toSearchString(parseSearch(input.currentSearch));
+
+  if (input.destination === "discover") {
+    if (input.mode !== "discover") {
+      return false;
+    }
+    return normalizedCurrent === buildHomeGallerySearch(input.currentSearch);
+  }
 
   if (input.destination === "collections") {
     if (input.mode !== "collections") {
@@ -150,5 +180,5 @@ export function shouldSkipGalleryNav(input: {
   if (input.mode !== "wallet") {
     return false;
   }
-  return normalizedCurrent === buildHomeGallerySearch(input.currentSearch);
+  return normalizedCurrent === buildWalletViewSearch(input.currentSearch);
 }

@@ -44,28 +44,10 @@
   outline-offset: 2px;
 }
 
-.item:disabled {
-  cursor: not-allowed;
-  opacity: 0.75;
-}
-
 .active {
   color: var(--foreground);
   background: #eef2f7;
   border-color: var(--border);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
-  background: #e8edf4;
-  color: var(--muted-soft);
-  font-size: 0.6875rem;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 @media (max-width: 480px) {

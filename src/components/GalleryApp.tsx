@@ -22,9 +22,12 @@ import {
   buildCollectionsViewSearch,
   buildHomeGallerySearch,
   buildWalletGallerySearch,
+  buildWalletViewSearch,
   resolveActiveNav,
   resolveGalleryDeepLink,
   shouldSkipGalleryNav,
+  type GalleryMode,
+  type GalleryNavDestination,
 } from "@/lib/galleryQuery";
 import type { NftItem } from "@/lib/nft";
 import {
@@ -39,12 +42,12 @@ import { AddressForm } from "./AddressForm";
 import { AppNav } from "./AppNav";
 import { CollectionHeader } from "./CollectionHeader";
 import { CollectionsDirectory } from "./CollectionsDirectory";
+import { DiscoverHome } from "./DiscoverHome";
 import { NftDetailsModal } from "./NftDetailsModal";
 import { NftGrid } from "./NftGrid";
 import styles from "./GalleryApp.module.css";
 
 type Status = "idle" | "loading" | "success" | "error";
-type GalleryMode = "wallet" | "collection" | "collections";
 
 const INVALID_ADDRESS_MESSAGE =
   "Enter a valid Ethereum address (0x followed by 40 hexadecimal characters).";
@@ -63,7 +66,7 @@ function pushGalleryUrl(search: string) {
 }
 
 export function GalleryApp() {
-  const [mode, setMode] = useState<GalleryMode>("wallet");
+  const [mode, setMode] = useState<GalleryMode>("discover");
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -126,6 +129,18 @@ export function GalleryApp() {
     setNextPageParams(null);
     collectionCursorHistoryRef.current = createRequestedCursorHistory();
     clearSelection();
+  }
+
+  function enterDiscover() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    resetSharedResults();
+    setMode("discover");
+    setStatus("idle");
+    setAddress("");
+    setQueriedAddress(null);
+    setQueriedContract(null);
+    setCollection(null);
   }
 
   function enterWalletIdle() {
@@ -270,6 +285,10 @@ export function GalleryApp() {
     }
 
     const action = resolveGalleryDeepLink(search);
+    if (action.type === "discover") {
+      enterDiscover();
+      return;
+    }
     if (action.type === "none") {
       enterWalletIdle();
       return;
@@ -332,10 +351,10 @@ export function GalleryApp() {
   function handleBackToWalletGallery() {
     userHasInitiatedSearchRef.current = true;
     enterWalletIdle();
-    pushGalleryUrl(buildHomeGallerySearch(window.location.search));
+    pushGalleryUrl(buildWalletViewSearch(window.location.search));
   }
 
-  function handleNavigate(destination: "collections" | "wallet") {
+  function handleNavigate(destination: GalleryNavDestination) {
     if (
       shouldSkipGalleryNav({
         destination,
@@ -347,13 +366,18 @@ export function GalleryApp() {
     }
 
     userHasInitiatedSearchRef.current = true;
+    if (destination === "discover") {
+      enterDiscover();
+      pushGalleryUrl(buildHomeGallerySearch(window.location.search));
+      return;
+    }
     if (destination === "collections") {
       enterCollectionsDirectory();
       pushGalleryUrl(buildCollectionsViewSearch(window.location.search));
       return;
     }
     enterWalletIdle();
-    pushGalleryUrl(buildHomeGallerySearch(window.location.search));
+    pushGalleryUrl(buildWalletViewSearch(window.location.search));
   }
 
   function handleSelectDirectoryCollection(contractAddress: string) {
@@ -478,6 +502,7 @@ export function GalleryApp() {
     }
   }
 
+  const isDiscoverMode = mode === "discover";
   const isCollectionMode = mode === "collection";
   const isCollectionsDirectory = mode === "collections";
   const isWalletMode = mode === "wallet";
@@ -500,11 +525,13 @@ export function GalleryApp() {
     status === "success" &&
     (items.length > 0 || showLoadMore);
 
-  const subtitle = isCollectionsDirectory
-    ? "Browse every NFT contract indexed on Besu Edu-Net."
-    : isCollectionMode
-      ? "Collection explorer for Besu Edu-Net. Browse NFTs from a smart contract without connecting a wallet."
-      : "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address.";
+  const subtitle = isDiscoverMode
+    ? "Curated educational, identity, achievement, and research NFT collections on Besu Edu-Net."
+    : isCollectionsDirectory
+      ? "Browse every NFT contract indexed on Besu Edu-Net."
+      : isCollectionMode
+        ? "Collection explorer for Besu Edu-Net. Browse NFTs from a smart contract without connecting a wallet."
+        : "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address.";
 
   return (
     <div className={styles.shell}>
@@ -518,6 +545,14 @@ export function GalleryApp() {
           <h1 className={styles.title}>Besu NFT Gallery</h1>
           <p className={styles.subtitle}>{subtitle}</p>
         </header>
+
+        {isDiscoverMode ? (
+          <DiscoverHome
+            onExploreCollections={() => handleNavigate("collections")}
+            onOpenWalletGallery={() => handleNavigate("wallet")}
+            onSelectCollection={handleSelectDirectoryCollection}
+          />
+        ) : null}
 
         {isCollectionsDirectory ? (
           <CollectionsDirectory

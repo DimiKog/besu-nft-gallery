@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/ipfs.test.ts src/lib/nftDisplay.test.ts src/lib/htmlEntities.test.ts src/lib/safeUrl.test.ts src/lib/address.test.ts src/lib/addressQuery.test.ts src/lib/galleryQuery.test.ts src/lib/nftPagination.test.ts src/lib/collectionsDirectory.test.ts src/lib/blockscout/mapNft.test.ts src/lib/blockscout/mapCollection.test.ts src/lib/blockscout/client.test.ts src/lib/blockscout/collections.test.ts"
+    "test": "tsx --test src/lib/ipfs.test.ts src/lib/nftDisplay.test.ts src/lib/htmlEntities.test.ts src/lib/safeUrl.test.ts src/lib/address.test.ts src/lib/addressQuery.test.ts src/lib/galleryQuery.test.ts src/lib/featuredCollections.test.ts src/lib/nftPagination.test.ts src/lib/collectionsDirectory.test.ts src/lib/blockscout/mapNft.test.ts src/lib/blockscout/mapCollection.test.ts src/lib/blockscout/client.test.ts src/lib/blockscout/collections.test.ts"
   },
   "dependencies": {
     "next": "16.4.3",

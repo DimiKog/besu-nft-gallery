@@ -5,6 +5,7 @@ import {
   buildCollectionsViewSearch,
   buildHomeGallerySearch,
   buildWalletGallerySearch,
+  buildWalletViewSearch,
   resolveActiveNav,
   resolveGalleryDeepLink,
   shouldSkipGalleryNav,
@@ -14,9 +15,9 @@ const WALLET = "0x0E66db7d115B8F392eB7DFb8BaCb23675dAEB59E";
 const CONTRACT = "0x5Ad2E39FAeE577D233059902eE94bc8df66d69c9";
 
 describe("resolveGalleryDeepLink", () => {
-  it("defaults to none for the Wallet Gallery landing URL", () => {
-    assert.deepEqual(resolveGalleryDeepLink(""), { type: "none" });
-    assert.deepEqual(resolveGalleryDeepLink("?utm=1"), { type: "none" });
+  it("defaults to Discover for the landing URL", () => {
+    assert.deepEqual(resolveGalleryDeepLink(""), { type: "discover" });
+    assert.deepEqual(resolveGalleryDeepLink("?utm=1"), { type: "discover" });
   });
 
   it("resolves the All Collections deep link", () => {
@@ -25,6 +26,13 @@ describe("resolveGalleryDeepLink", () => {
     });
     assert.deepEqual(resolveGalleryDeepLink("?view=Collections&utm=edu"), {
       type: "collections",
+    });
+  });
+
+  it("resolves Wallet Gallery idle via view=wallet", () => {
+    assert.deepEqual(resolveGalleryDeepLink("?view=wallet"), { type: "none" });
+    assert.deepEqual(resolveGalleryDeepLink("?view=Wallet&utm=edu"), {
+      type: "none",
     });
   });
 
@@ -49,6 +57,13 @@ describe("resolveGalleryDeepLink", () => {
     });
   });
 
+  it("retains address deep links without requiring view=wallet", () => {
+    assert.deepEqual(resolveGalleryDeepLink(`?address=${WALLET}&utm=edu`), {
+      type: "wallet",
+      address: WALLET,
+    });
+  });
+
   it("gives contract precedence over view and address", () => {
     assert.deepEqual(
       resolveGalleryDeepLink(
@@ -66,6 +81,13 @@ describe("resolveGalleryDeepLink", () => {
         raw: "0xbad",
       },
     );
+    assert.deepEqual(
+      resolveGalleryDeepLink(`?view=wallet&contract=${CONTRACT}`),
+      {
+        type: "collection",
+        contract: CONTRACT,
+      },
+    );
   });
 
   it("gives collections view precedence over address", () => {
@@ -75,17 +97,25 @@ describe("resolveGalleryDeepLink", () => {
     );
   });
 
+  it("gives address precedence over view=wallet", () => {
+    assert.deepEqual(
+      resolveGalleryDeepLink(`?view=wallet&address=${WALLET}`),
+      { type: "wallet", address: WALLET },
+    );
+  });
+
   it("supports browser back/forward style search strings", () => {
+    assert.equal(resolveGalleryDeepLink("").type, "discover");
     assert.equal(
       resolveGalleryDeepLink(`?view=collections`).type,
       "collections",
     );
+    assert.equal(resolveGalleryDeepLink(`?view=wallet`).type, "none");
     assert.equal(
       resolveGalleryDeepLink(`?contract=${CONTRACT}`).type,
       "collection",
     );
     assert.equal(resolveGalleryDeepLink(`?address=${WALLET}`).type, "wallet");
-    assert.equal(resolveGalleryDeepLink("").type, "none");
   });
 });
 
@@ -96,6 +126,15 @@ describe("gallery search builders", () => {
         `?address=${WALLET}&contract=${CONTRACT}&utm=edu`,
       ),
       "?utm=edu&view=collections",
+    );
+  });
+
+  it("builds wallet idle view while clearing obsolete mode params", () => {
+    assert.equal(
+      buildWalletViewSearch(
+        `?address=${WALLET}&contract=${CONTRACT}&utm=edu`,
+      ),
+      "?utm=edu&view=wallet",
     );
   });
 
@@ -119,7 +158,7 @@ describe("gallery search builders", () => {
     );
   });
 
-  it("builds home search by clearing mode params only", () => {
+  it("builds Discover home search by clearing mode params only", () => {
     assert.equal(
       buildHomeGallerySearch(
         `?address=${WALLET}&contract=${CONTRACT}&view=collections&utm=edu`,
@@ -127,9 +166,28 @@ describe("gallery search builders", () => {
       "?utm=edu",
     );
   });
+
+  it("preserves unrelated query parameters across view switches", () => {
+    assert.equal(
+      buildHomeGallerySearch("?utm=edu&ref=nav&view=wallet"),
+      "?utm=edu&ref=nav",
+    );
+    assert.equal(
+      buildWalletViewSearch("?utm=edu&ref=nav&view=collections"),
+      "?utm=edu&ref=nav&view=wallet",
+    );
+    assert.equal(
+      buildCollectionsViewSearch("?utm=edu&ref=nav"),
+      "?utm=edu&ref=nav&view=collections",
+    );
+  });
 });
 
 describe("resolveActiveNav", () => {
+  it("highlights Discover for discover mode", () => {
+    assert.equal(resolveActiveNav("discover"), "discover");
+  });
+
   it("highlights Collections for directory and detail modes", () => {
     assert.equal(resolveActiveNav("collections"), "collections");
     assert.equal(resolveActiveNav("collection"), "collections");
@@ -141,6 +199,36 @@ describe("resolveActiveNav", () => {
 });
 
 describe("shouldSkipGalleryNav", () => {
+  it("skips Discover when already on the Discover home URL", () => {
+    assert.equal(
+      shouldSkipGalleryNav({
+        destination: "discover",
+        mode: "discover",
+        currentSearch: "",
+      }),
+      true,
+    );
+    assert.equal(
+      shouldSkipGalleryNav({
+        destination: "discover",
+        mode: "discover",
+        currentSearch: "?utm=edu",
+      }),
+      true,
+    );
+  });
+
+  it("does not skip Discover from Wallet Gallery", () => {
+    assert.equal(
+      shouldSkipGalleryNav({
+        destination: "discover",
+        mode: "wallet",
+        currentSearch: "?view=wallet",
+      }),
+      false,
+    );
+  });
+
   it("skips Collections when already on the collections directory URL", () => {
     assert.equal(
       shouldSkipGalleryNav({
@@ -171,12 +259,12 @@ describe("shouldSkipGalleryNav", () => {
     );
   });
 
-  it("skips Wallet Gallery only when already on the wallet home URL", () => {
+  it("skips Wallet Gallery only when already on the wallet idle URL", () => {
     assert.equal(
       shouldSkipGalleryNav({
         destination: "wallet",
         mode: "wallet",
-        currentSearch: "",
+        currentSearch: "?view=wallet",
       }),
       true,
     );
@@ -184,9 +272,17 @@ describe("shouldSkipGalleryNav", () => {
       shouldSkipGalleryNav({
         destination: "wallet",
         mode: "wallet",
-        currentSearch: "?utm=edu",
+        currentSearch: "?utm=edu&view=wallet",
       }),
       true,
+    );
+    assert.equal(
+      shouldSkipGalleryNav({
+        destination: "wallet",
+        mode: "wallet",
+        currentSearch: "",
+      }),
+      false,
     );
     assert.equal(
       shouldSkipGalleryNav({
@@ -210,6 +306,14 @@ describe("shouldSkipGalleryNav", () => {
     assert.equal(
       buildCollectionsViewSearch("?utm=edu&view=collections&ref=nav"),
       "?utm=edu&view=collections&ref=nav",
+    );
+    assert.equal(
+      shouldSkipGalleryNav({
+        destination: "wallet",
+        mode: "wallet",
+        currentSearch: "?utm=edu&view=wallet&ref=nav",
+      }),
+      true,
     );
   });
 });

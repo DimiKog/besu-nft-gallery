@@ -15,13 +15,15 @@ export function AppNav({ active, onNavigate }: AppNavProps) {
         <li>
           <button
             type="button"
-            className={styles.item}
-            disabled
-            aria-disabled="true"
-            title="Discover is coming soon"
+            className={
+              active === "discover"
+                ? `${styles.item} ${styles.active}`
+                : styles.item
+            }
+            aria-current={active === "discover" ? "page" : undefined}
+            onClick={() => onNavigate("discover")}
           >
             Discover
-            <span className={styles.badge}>Coming soon</span>
           </button>
         </li>
         <li>

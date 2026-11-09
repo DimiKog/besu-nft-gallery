@@ -1,0 +1,109 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.visual {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.visualMark {
+  display: block;
+  width: 2.5rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.treatmentEducation .visual {
+  color: #2f5d4a;
+  background:
+    linear-gradient(145deg, #e7f2ec 0%, #f4f8f6 55%, #eef3f0 100%);
+}
+
+.treatmentIdentity .visual {
+  color: #3d4f6f;
+  background:
+    linear-gradient(145deg, #e8edf5 0%, #f5f7fb 55%, #eef1f7 100%);
+}
+
+.treatmentResearch .visual {
+  color: #6a4f2f;
+  background:
+    linear-gradient(145deg, #f3ebe1 0%, #faf6f1 55%, #f2eee8 100%);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1;
+  padding: 1rem 0.95rem 1.05rem;
+  min-width: 0;
+}
+
+.category {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  margin: 0;
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.action {
+  align-self: flex-start;
+  min-height: 2.35rem;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.action:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
