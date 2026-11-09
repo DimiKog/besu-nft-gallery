@@ -347,7 +347,7 @@ export function CollectionsDirectory({
   return (
     <section className={styles.root} aria-label="All collections">
       <div className={styles.intro}>
-        <h2 className={styles.heading}>All Collections</h2>
+        <h1 className={styles.heading}>All Collections</h1>
         <p className={styles.subtitle}>
           Dynamic directory of ERC-721 and ERC-1155 contracts indexed on Besu
           Edu-Net via Blockscout.

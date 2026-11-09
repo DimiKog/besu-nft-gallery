@@ -41,7 +41,10 @@ export function CollectionCard({ collection, onSelect }: CollectionCardProps) {
             />
           ) : (
             <span className={styles.iconFallback}>
-              {collection.tokenType === "ERC-1155" ? "1155" : "721"}
+              <span className={styles.iconFallbackLabel}>
+                {collection.tokenType}
+              </span>
+              <span className={styles.iconFallbackHint}>No icon</span>
             </span>
           )}
         </div>
@@ -52,7 +55,15 @@ export function CollectionCard({ collection, onSelect }: CollectionCardProps) {
             <p className={styles.symbol}>{collection.symbol}</p>
           ) : null}
           <p className={styles.meta}>
-            <span className={styles.standard}>{collection.tokenType}</span>
+            <span
+              className={
+                collection.tokenType === "ERC-1155"
+                  ? `${styles.standard} ${styles.standardErc1155}`
+                  : styles.standard
+              }
+            >
+              {collection.tokenType}
+            </span>
             <span className={styles.mono} title={collection.address}>
               {abbreviated}
             </span>

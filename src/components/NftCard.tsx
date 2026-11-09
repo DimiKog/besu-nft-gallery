@@ -20,7 +20,15 @@ export function NftCard({ nft, onSelect }: NftCardProps) {
       <div className={styles.body}>
         <div className={styles.headerRow}>
           <h2 className={styles.title}>{title}</h2>
-          <span className={styles.badge}>{nft.tokenType}</span>
+          <span
+            className={
+              nft.tokenType === "ERC-1155"
+                ? `${styles.badge} ${styles.badgeErc1155}`
+                : styles.badge
+            }
+          >
+            {nft.tokenType}
+          </span>
         </div>
         <p className={styles.meta}>
           {nft.collectionName ?? "Unknown collection"}
