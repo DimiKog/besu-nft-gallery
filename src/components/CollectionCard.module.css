@@ -1,5 +1,6 @@
 .card {
   min-width: 0;
+  height: 100%;
 }
 
 .button {
@@ -8,36 +9,50 @@
   gap: 0.85rem;
   width: 100%;
   height: 100%;
-  padding: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  color: inherit;
+  padding: 0.95rem;
+  border: 1px solid var(--discover-border, #273653);
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(
+      180deg,
+      var(--discover-surface-elevated, #17233b) 0%,
+      var(--discover-surface, #111b30) 100%
+    );
+  color: var(--discover-text, #f4f7ff);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  box-shadow:
+    0 12px 28px rgba(2, 8, 24, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .button:hover {
-  border-color: var(--border-strong);
-  background: #fbfcfe;
+  border-color: rgba(117, 88, 246, 0.45);
+  box-shadow:
+    0 16px 34px rgba(2, 8, 24, 0.34),
+    0 0 0 1px rgba(40, 199, 247, 0.08);
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--discover-cyan, #28c7f7);
   outline-offset: 2px;
 }
 
 .media {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   aspect-ratio: 16 / 10;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: #eef2f7;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(39, 54, 83, 0.95);
+  background:
+    radial-gradient(circle at 22% 28%, rgba(117, 88, 246, 0.22), transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(40, 199, 247, 0.14), transparent 46%),
+    linear-gradient(160deg, #142038 0%, #0d162b 100%);
   overflow: hidden;
 }
 
@@ -49,23 +64,42 @@
 }
 
 .iconFallback {
-  color: var(--muted-soft);
-  font-size: 0.8125rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.iconFallbackLabel {
+  color: var(--discover-text, #f4f7ff);
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.iconFallbackHint {
+  color: var(--discover-text-muted, #a5b2ca);
+  font-size: 0.7rem;
+  font-weight: 550;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
   min-width: 0;
 }
 
 .title {
   margin: 0;
+  color: var(--discover-text, #f4f7ff);
   font-size: 0.975rem;
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.015em;
   overflow-wrap: anywhere;
@@ -73,7 +107,7 @@
 
 .symbol {
   margin: 0;
-  color: var(--muted);
+  color: var(--discover-text-muted, #a5b2ca);
   font-size: 0.8125rem;
 }
 
@@ -81,20 +115,44 @@
 .stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
   margin: 0;
-  color: var(--muted);
+  color: var(--discover-text-muted, #a5b2ca);
   font-size: 0.8125rem;
   line-height: 1.4;
 }
 
 .standard {
-  font-weight: 600;
-  color: var(--foreground);
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  padding: 0.12rem 0.5rem;
+  border: 1px solid rgba(117, 88, 246, 0.35);
+  border-radius: 999px;
+  background: rgba(117, 88, 246, 0.14);
+  color: #d2b8ff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.standardErc1155 {
+  border-color: rgba(40, 199, 247, 0.35);
+  background: rgba(40, 199, 247, 0.12);
+  color: #9fd0ff;
 }
 
 .mono {
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
     Monaco, Consolas, monospace;
   font-size: 0.85em;
+  color: #c5d0e6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
 }

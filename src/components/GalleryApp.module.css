@@ -1,11 +1,4 @@
 .shell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  width: 100%;
-}
-
-.discoverShell {
   --discover-bg: #080f20;
   --discover-surface: #111b30;
   --discover-surface-elevated: #17233b;
@@ -17,8 +10,14 @@
   --discover-education: #258cf4;
   --discover-identity: #9564f5;
   --discover-research: #20bfa8;
-  min-height: 100vh;
+  --gallery-error-bg: rgba(138, 31, 31, 0.22);
+  --gallery-error-border: rgba(232, 180, 180, 0.45);
+  --gallery-error-text: #ffc9c9;
+  display: flex;
+  flex-direction: column;
   gap: 0;
+  width: 100%;
+  min-height: 100vh;
   background:
     radial-gradient(circle at 15% -10%, rgba(117, 88, 246, 0.22), transparent 40%),
     radial-gradient(circle at 85% 0%, rgba(40, 199, 247, 0.12), transparent 35%),
@@ -50,16 +49,18 @@
 }
 
 .title {
-  font-size: clamp(1.75rem, 2.5vw, 2.125rem);
-  font-weight: 650;
+  margin: 0;
+  font-size: clamp(1.55rem, 2.5vw, 1.95rem);
+  font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.2;
-  color: var(--foreground);
+  color: var(--discover-text);
 }
 
 .subtitle {
+  margin: 0;
   max-width: 38rem;
-  color: var(--muted);
+  color: var(--discover-text-muted);
   font-size: 1rem;
   line-height: 1.55;
 }
@@ -73,12 +74,12 @@
 }
 
 .textButton {
-  min-height: 2.25rem;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--foreground);
+  min-height: 2.35rem;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid rgba(40, 199, 247, 0.35);
+  border-radius: 999px;
+  background: rgba(17, 27, 48, 0.72);
+  color: #e8eefc;
   font: inherit;
   font-size: 0.8125rem;
   font-weight: 550;
@@ -87,27 +88,27 @@
 }
 
 .textButton:hover {
-  background: #f7f9fc;
-  border-color: #a8b3c4;
+  border-color: rgba(40, 199, 247, 0.55);
+  background: rgba(23, 35, 59, 0.9);
 }
 
 .textButton:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--discover-cyan);
   outline-offset: 2px;
 }
 
 .status {
   font-size: 0.9375rem;
-  color: var(--muted);
+  color: var(--discover-text-muted);
   line-height: 1.45;
 }
 
 .error {
   padding: 0.75rem 0.9rem;
-  border: 1px solid var(--error-border);
-  border-radius: var(--radius);
-  background: var(--error-bg);
-  color: var(--error-text);
+  border: 1px solid var(--gallery-error-border);
+  border-radius: 0.75rem;
+  background: var(--gallery-error-bg);
+  color: var(--gallery-error-text);
   max-width: 40rem;
   line-height: 1.45;
 }
@@ -136,21 +137,22 @@
 
 .loadMoreButton {
   min-height: 2.5rem;
-  padding: 0.65rem 1.1rem;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: #fff;
+  padding: 0.65rem 1.2rem;
+  border: 1px solid rgba(117, 88, 246, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7558f6 0%, #4f7bf5 100%);
+  color: #f4f7ff;
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  box-shadow: 0 10px 24px rgba(117, 88, 246, 0.28);
+  transition: filter 0.14s ease;
 }
 
 .loadMoreButton:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--discover-cyan);
   outline-offset: 2px;
 }
 
@@ -160,13 +162,23 @@
 }
 
 .loadMoreButton:not(:disabled):hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  filter: brightness(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .textButton,
+  .loadMoreButton {
+    transition: none;
+  }
 }
 
 @media (max-width: 480px) {
   .app {
     padding: 1.15rem 1rem 2.75rem;
     gap: 1.25rem;
+  }
+
+  .discoverApp {
+    padding: 1.15rem 1rem 3rem;
   }
 }

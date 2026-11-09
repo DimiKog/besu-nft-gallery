@@ -10,7 +10,7 @@
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  color: var(--foreground);
+  color: var(--discover-text, #f4f7ff);
 }
 
 .row {
@@ -23,33 +23,34 @@
 .input {
   flex: 1 1 16rem;
   min-width: 0;
-  min-height: 2.75rem;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  min-height: 2.85rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--discover-border, #273653);
+  border-radius: 999px;
   font: inherit;
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
     Monaco, Consolas, monospace;
   font-size: 0.875rem;
   line-height: 1.4;
-  background: var(--surface);
-  color: var(--foreground);
-  box-shadow: var(--shadow-sm);
+  background: var(--discover-surface, #111b30);
+  color: var(--discover-text, #f4f7ff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  caret-color: var(--discover-cyan, #28c7f7);
 }
 
 .input::placeholder {
-  color: var(--muted-soft);
+  color: #7f8eaa;
 }
 
 .input:hover:not(:disabled) {
-  border-color: #a8b3c4;
+  border-color: rgba(40, 199, 247, 0.45);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 3px rgba(61, 90, 128, 0.18);
+  border-color: var(--discover-cyan, #28c7f7);
+  box-shadow: 0 0 0 3px rgba(40, 199, 247, 0.22);
 }
 
 .input:disabled {
@@ -57,24 +58,37 @@
   cursor: not-allowed;
 }
 
+/* Keep autofilled values readable on dark surfaces (WebKit / Chromium). */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f4f7ff;
+  caret-color: #28c7f7;
+  box-shadow:
+    0 0 0 1000px #111b30 inset,
+    0 0 0 1px #273653 inset;
+  transition: background-color 99999s ease-out;
+}
+
 .button {
   flex: 0 0 auto;
-  min-height: 2.75rem;
-  padding: 0.7rem 1.15rem;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: #fff;
+  min-height: 2.85rem;
+  padding: 0.7rem 1.25rem;
+  border: 1px solid rgba(117, 88, 246, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7558f6 0%, #4f7bf5 100%);
+  color: #f4f7ff;
   font: inherit;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  box-shadow: 0 10px 24px rgba(117, 88, 246, 0.28);
+  transition: filter 0.14s ease;
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--discover-cyan, #28c7f7);
   outline-offset: 2px;
 }
 
@@ -84,8 +98,14 @@
 }
 
 .button:not(:disabled):hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  filter: brightness(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input,
+  .button {
+    transition: none;
+  }
 }
 
 @media (max-width: 480px) {

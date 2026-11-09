@@ -525,33 +525,31 @@ export function GalleryApp() {
     status === "success" &&
     (items.length > 0 || showLoadMore);
 
-  const subtitle = isDiscoverMode
-    ? "Curated educational, identity, achievement, and research NFT collections on Besu Edu-Net."
-    : isCollectionsDirectory
-      ? "Browse every NFT contract indexed on Besu Edu-Net."
-      : isCollectionMode
-        ? "Collection explorer for Besu Edu-Net. Browse NFTs from a smart contract without connecting a wallet."
-        : "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address.";
+  const pageHeading = isWalletMode
+    ? {
+        title: "Wallet Gallery",
+        subtitle:
+          "Read-only NFT viewer for Besu Edu-Net. Enter a wallet address to list ERC-721 and ERC-1155 tokens owned by that address.",
+      }
+    : isCollectionMode
+      ? {
+          title: "Collection",
+          subtitle:
+            "Collection explorer for Besu Edu-Net. Browse NFTs from a smart contract without connecting a wallet.",
+        }
+      : null;
 
   return (
-    <div
-      className={
-        isDiscoverMode ? `${styles.shell} ${styles.discoverShell}` : styles.shell
-      }
-    >
-      <AppNav
-        active={resolveActiveNav(mode)}
-        theme={isDiscoverMode ? "dark" : "light"}
-        onNavigate={handleNavigate}
-      />
+    <div className={styles.shell}>
+      <AppNav active={resolveActiveNav(mode)} onNavigate={handleNavigate} />
 
       <div className={isDiscoverMode ? `${styles.app} ${styles.discoverApp}` : styles.app}>
-        {isDiscoverMode ? null : (
+        {pageHeading ? (
           <header className={styles.header}>
-            <h1 className={styles.title}>Besu NFT Gallery</h1>
-            <p className={styles.subtitle}>{subtitle}</p>
+            <h1 className={styles.title}>{pageHeading.title}</h1>
+            <p className={styles.subtitle}>{pageHeading.subtitle}</p>
           </header>
-        )}
+        ) : null}
 
         {isDiscoverMode ? (
           <DiscoverHome

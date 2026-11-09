@@ -5,29 +5,19 @@ import styles from "./AppNav.module.css";
 
 type AppNavProps = {
   active: GalleryNavDestination;
-  theme?: "light" | "dark";
   onNavigate: (destination: GalleryNavDestination) => void;
 };
 
-export function AppNav({
-  active,
-  theme = "light",
-  onNavigate,
-}: AppNavProps) {
-  const rootClass =
-    theme === "dark" ? `${styles.nav} ${styles.navDark}` : styles.nav;
-
+export function AppNav({ active, onNavigate }: AppNavProps) {
   return (
-    <header className={rootClass}>
-      {theme === "dark" ? (
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true" />
-          <div className={styles.brandText}>
-            <p className={styles.brandTitle}>Besu NFT Gallery</p>
-            <p className={styles.brandSubtitle}>Besu Edu-Net</p>
-          </div>
+    <header className={styles.nav}>
+      <div className={styles.brand}>
+        <span className={styles.brandMark} aria-hidden="true" />
+        <div className={styles.brandText}>
+          <p className={styles.brandTitle}>Besu NFT Gallery</p>
+          <p className={styles.brandSubtitle}>Besu Edu-Net</p>
         </div>
-      ) : null}
+      </div>
 
       <nav aria-label="Primary">
         <ul className={styles.list}>

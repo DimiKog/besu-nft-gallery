@@ -1,6 +1,8 @@
 :root {
-  --background: #f3f6fa;
-  --foreground: #1a1d23;
+  /* Page chrome matches the gallery dark shell; legacy light surface tokens
+     remain only for any residual non-gallery contexts. */
+  --background: #080f20;
+  --foreground: #f4f7ff;
   --surface: #ffffff;
   --border: #d8dee8;
   --border-strong: #c2cad6;
@@ -20,6 +22,7 @@
 
 html {
   height: 100%;
+  background: var(--background);
 }
 
 html,
